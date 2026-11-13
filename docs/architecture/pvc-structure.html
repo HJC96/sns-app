@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PVC 저장 구조</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>:root{--sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--bg:#f1f5fa;--surface:#ffffff;--row-bg:#f5f8fc;--fg:#12203a;--muted:#55627e;--line:#d0d8e8;--accent:#2f6be0;--on-accent:#ffffff;--code-bg:#e5ebf6;--cluster-bg:#f7faff;--cluster-line:#326ce5;--cp-bg:#eceffb;--cp-line:#7a86c8;--ns1-bg:#e6f0ff;--ns1-line:#4a7fe6;--ns2-bg:#e4f5eb;--ns2-line:#2f9560;--deploy-bg:#fde6cd;--deploy-line:#e08428;--rs-bg:#fff0b3;--rs-line:#c99b00;--pod-bg:#ffffff;--pod-line:#326ce5;--pvc-bg:#eadffb;--pvc-line:#7a45d0;--pv-bg:#d6f0ec;--pv-line:#0f8f82;--sc-bg:#e3f5f2;--scoped-bg:#ecf7f5;--data:#0b7f73;--data-line:#075c53;--node-bg:#eef1f6;--node-line:#7b88a2;--host-bg:#e8ecf2;--host-line:#97a3b8;--mount-bg:#e0eaff;--warn-bg:#ffe4e6;--warn-line:#d9434f;--warn-fg:#b02a37;--ok-fg:#0a7a6d;--tip-bg:#fff3cd;--tip-line:#dfa81a;--term-bg:#16213a;--term-fg:#d9e5ff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0b111e;--surface:#121a2b;--row-bg:#0f1626;--fg:#e6ecf8;--muted:#9aa8c4;--line:#26314a;--accent:#6d9bff;--on-accent:#0b111e;--code-bg:#1b2640;--cluster-bg:#0f1727;--cluster-line:#5a86f0;--cp-bg:#181e35;--cp-line:#6b78c2;--ns1-bg:#11213d;--ns1-line:#4d80e6;--ns2-bg:#10291f;--ns2-line:#38a068;--deploy-bg:#38260f;--deploy-line:#e08a3c;--rs-bg:#383010;--rs-line:#cfa500;--pod-bg:#16213a;--pod-line:#6d9bff;--pvc-bg:#2a1f47;--pvc-line:#a97ff2;--pv-bg:#12302d;--pv-line:#2fb5a4;--sc-bg:#143733;--scoped-bg:#0e2523;--data:#12877b;--data-line:#38c9b8;--node-bg:#141c2d;--node-line:#566683;--host-bg:#131a2a;--host-line:#4b5974;--mount-bg:#182a4d;--warn-bg:#3a1a1f;--warn-line:#f0626d;--warn-fg:#ff9ea6;--ok-fg:#52d4c3;--tip-bg:#372f12;--tip-line:#d9aa2e;--term-bg:#080d18;--term-fg:#cfe0ff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b111e;--surface:#121a2b;--row-bg:#0f1626;--fg:#e6ecf8;--muted:#9aa8c4;--line:#26314a;--accent:#6d9bff;--on-accent:#0b111e;--code-bg:#1b2640;--cluster-bg:#0f1727;--cluster-line:#5a86f0;--cp-bg:#181e35;--cp-line:#6b78c2;--ns1-bg:#11213d;--ns1-line:#4d80e6;--ns2-bg:#10291f;--ns2-line:#38a068;--deploy-bg:#38260f;--deploy-line:#e08a3c;--rs-bg:#383010;--rs-line:#cfa500;--pod-bg:#16213a;--pod-line:#6d9bff;--pvc-bg:#2a1f47;--pvc-line:#a97ff2;--pv-bg:#12302d;--pv-line:#2fb5a4;--sc-bg:#143733;--scoped-bg:#0e2523;--data:#12877b;--data-line:#38c9b8;--node-bg:#141c2d;--node-line:#566683;--host-bg:#131a2a;--host-line:#4b5974;--mount-bg:#182a4d;--warn-bg:#3a1a1f;--warn-line:#f0626d;--warn-fg:#ff9ea6;--ok-fg:#52d4c3;--tip-bg:#372f12;--tip-line:#d9aa2e;--term-bg:#080d18;--term-fg:#cfe0ff;color-scheme:dark}
+
+/* Layout: one text column; the two figures run the full 1200px and scroll sideways inside their frame on phones. */
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.7 var(--sans);-webkit-text-size-adjust:100%;
+  padding-block:36px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1200px;margin-inline:auto;display:flex;flex-direction:column;gap:44px}
+header{max-width:72ch}
+h1{margin:0 0 10px;font-size:clamp(24px,3.4vw,32px);line-height:1.25;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:16px;text-wrap:pretty}
+h2{margin:0 0 14px;font-size:18px;line-height:1.3;font-weight:700}
+figure{margin:0}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.scroll:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll svg{display:block;width:100%;min-width:1000px;height:auto}
+figcaption{margin-top:12px;max-width:80ch;color:var(--muted);font-size:14px;line-height:1.65}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:.1em .38em;border-radius:5px;overflow-wrap:anywhere}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px 40px;counter-reset:s}
+.steps li{position:relative;padding-left:40px;counter-increment:s;min-width:0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:2px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 13px/26px var(--sans);text-align:center}
+.steps b{display:block;margin-bottom:2px}
+.notes{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:10px;max-width:80ch}
+.notes li::marker{color:var(--muted)}
+
+/* figure styling (classes referenced from the inline SVGs) */
+svg text{font-family:var(--sans);fill:var(--fg)}
+.mono,.mono-s{font-family:var(--mono)}
+.mono-s{font-size:11px}
+.t-cluster{font-size:20px;font-weight:700}
+.t-ns{font-size:18px;font-weight:700}
+.t-h{font-size:15px;font-weight:700}
+.t-row{font-size:17px;font-weight:700}
+.t-sub{font-size:13px;fill:var(--muted)}
+.colh{font-size:14px;font-weight:700}
+.k{font-size:10px;font-weight:500;letter-spacing:.07em;fill:var(--muted)}
+.n{font-family:var(--mono);font-size:14px;font-weight:600}
+.n.sm{font-size:12px}
+.d{font-size:12px;fill:var(--muted)}
+.dm{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.note{font-size:12.5px;fill:var(--muted)}
+.lbl{font-size:12px;fill:var(--muted)}
+.lbl.b,.b{font-weight:700}
+.m1{font-size:11.5px}
+.m1 .mono{font-size:11px}
+.bad2{fill:var(--warn-fg)}
+.bad{font-size:12.5px;font-weight:700;fill:var(--warn-fg)}
+.ok{font-size:12.5px;font-weight:700;fill:var(--ok-fg)}
+.dim{opacity:.55}
+.comp-n{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.tip-t1{font-size:14px;font-weight:700}
+.tip-t{font-size:13px}
+.term-t{font-family:var(--mono);font-size:13px;fill:var(--term-fg)}
+.pill-t{font-size:11px;font-weight:700;fill:var(--warn-fg)}
+.pill-node-t{font-size:11.5px;fill:var(--muted)}
+.chip-t{font-size:11px;font-weight:500}
+.pathl{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.cyl-t{font-size:13px;font-weight:700;fill:#fff}
+.cyl-t.ghost{opacity:.5}
+.cyl-t2{font-size:11px;fill:#fff;fill-opacity:.85}
+.hep-t{font-size:10px;font-weight:700;fill:#fff}
+.num-t{font-size:12px;font-weight:700;fill:var(--on-accent)}
+
+.cluster{fill:var(--cluster-bg);stroke:var(--cluster-line);stroke-width:3}
+.cp{fill:var(--cp-bg);stroke:var(--cp-line);stroke-width:1.5}
+.comp{fill:var(--surface);stroke:var(--cp-line);stroke-width:1.5}
+.comp.hl{stroke:var(--pvc-line);stroke-width:2.5}
+.ns1{fill:var(--ns1-bg);stroke:var(--ns1-line);stroke-width:2;stroke-dasharray:9 6}
+.ns2{fill:var(--ns2-bg);stroke:var(--ns2-line);stroke-width:2;stroke-dasharray:9 6}
+.scoped{fill:var(--scoped-bg);stroke:var(--pv-line);stroke-width:1.5}
+.node{fill:var(--node-bg);stroke:var(--node-line);stroke-width:2}
+.host{fill:var(--host-bg);stroke:var(--host-line);stroke-width:1.5}
+.legend{fill:var(--row-bg);stroke:var(--line)}
+.row{fill:var(--row-bg);stroke:var(--line)}
+.disk{fill:var(--node-bg);stroke:var(--node-line);stroke-width:1.5}
+.tip{fill:var(--tip-bg);stroke:var(--tip-line);stroke-width:2}
+.term{fill:var(--term-bg)}
+.dot0{fill:#ff5f57}.dot1{fill:#febc2e}.dot2{fill:#28c840}
+.bulb{fill:var(--tip-line);fill-opacity:.3;stroke:var(--tip-line);stroke-width:2}
+.bulb-base{fill:var(--tip-line)}
+.hep-k8s{fill:var(--cluster-line)}.hep-ns1{fill:var(--ns1-line)}.hep-ns2{fill:var(--ns2-line)}
+.res{stroke-width:2}
+.r-deploy{fill:var(--deploy-bg);stroke:var(--deploy-line)}
+.r-rs{fill:var(--rs-bg);stroke:var(--rs-line)}
+.r-pod{fill:var(--pod-bg);stroke:var(--pod-line)}
+.r-pvc{fill:var(--pvc-bg);stroke:var(--pvc-line);stroke-width:3}
+.r-pv{fill:var(--pv-bg);stroke:var(--pv-line)}
+.r-sc{fill:var(--sc-bg);stroke:var(--pv-line)}
+.pill-warn{fill:var(--warn-bg);stroke:var(--warn-line);stroke-width:1.2}
+.pill-node{fill:var(--surface);stroke:var(--node-line);stroke-width:1.2}
+.node-ic{fill:var(--node-line)}
+.podrun,.pod{fill:var(--pod-bg);stroke:var(--pod-line);stroke-width:2}
+.pod.dead{fill:var(--surface);stroke:var(--warn-line);stroke-dasharray:6 4}
+.chip1{fill:var(--ns1-bg);stroke:var(--ns1-line);stroke-width:1.5}
+.chip2{fill:var(--ns2-bg);stroke:var(--ns2-line);stroke-width:1.5}
+.mount{fill:var(--mount-bg);stroke:var(--accent);stroke-width:1.5}
+.ephem{fill:var(--warn-bg);stroke:var(--warn-line);stroke-width:1.5;stroke-dasharray:5 4}
+.cyl{fill:var(--data);stroke:var(--data-line);stroke-width:2}
+.cyl-lid{fill:#fff;fill-opacity:.2;stroke:var(--data-line);stroke-width:2}
+.cyl.ghost{opacity:.35;stroke-dasharray:5 4}
+.cyl-lid.ghost{opacity:.35}
+.cyl-empty,.cyl-empty-lid{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:5 4}
+.cyl-gray{fill:var(--host-line);stroke:var(--node-line);stroke-width:1.5}
+.cyl-gray-lid{fill:#fff;fill-opacity:.25;stroke:var(--node-line);stroke-width:1.5}
+.num-c{fill:var(--accent)}
+.xb{fill:var(--warn-line)}
+.xb-x{fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round}
+.ck{fill:var(--data)}
+.ck-x{fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.chev{fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.ln{fill:none}
+.ln-flow{stroke:var(--muted);stroke-width:2.2}
+.ln-claim{stroke:var(--pvc-line);stroke-width:2.6}
+.ln-prov{stroke:var(--pv-line);stroke-width:2.6;stroke-dasharray:7 5}
+.ln-data{stroke:var(--accent);stroke-width:4.5}
+.ln-dash{stroke:var(--muted);stroke-width:2;stroke-dasharray:4 4}
+.mk-flow,.mk-dash{fill:var(--muted)}
+.mk-claim{fill:var(--pvc-line)}
+.mk-prov{fill:var(--pv-line)}
+.mk-data{fill:var(--accent)}
+</style>
+<div class="wrap">
+  <header>
+    <h1>PVC 데이터는 어디에 저장될까</h1>
+    <p class="lede"><code>postgres.yaml</code>의 <code>postgres-pvc</code>를 기준으로, 데이터가 실제로 놓이는 곳과 파드가 죽었을 때의 동작을 그렸습니다. rustfs도 같은 방식입니다.</p>
+  </header>
+
+  <figure id="fig-structure">
+    <div class="scroll" tabindex="0" role="group" aria-label="구조도. 가로로 스크롤할 수 있습니다.">
+<svg viewBox="0 0 1200 1110" role="img" aria-label="Kubernetes 클러스터 구조도. PVC는 control-plane의 etcd에 정보만 남기고, 실제 데이터는 파드가 실행되는 노드 디스크의 폴더에 저장되며, 그 폴더가 파드의 마운트 경로에 연결된다."><defs><marker id="f1-flow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-flow" d="M0,0 L12,6 L0,12 Z"/></marker><marker id="f1-claim" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-claim" d="M0,0 L12,6 L0,12 Z"/></marker><marker id="f1-prov" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-prov" d="M0,0 L12,6 L0,12 Z"/></marker><marker id="f1-data" viewBox="0 0 16 16" markerWidth="16" markerHeight="16" refX="12" refY="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-data" d="M0,0 L16,8 L0,16 Z"/></marker><marker id="f1-dash" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-dash" d="M0,0 L12,6 L0,12 Z"/></marker><symbol id="f1-hep" viewBox="0 0 32 32"><polygon points="16,1 27.7,6.7 30.6,19.3 22.5,29.5 9.5,29.5 1.4,19.3 4.3,6.7"/></symbol></defs><rect class="tip" x="640" y="12" width="548" height="84" rx="12"/><rect class="cluster" x="12" y="112" width="1176" height="820" rx="22"/><rect class="cp" x="36" y="166" width="1128" height="100" rx="14"/><rect class="scoped" x="36" y="608" width="1128" height="100" rx="14"/><rect class="ns1" x="36" y="284" width="552" height="304" rx="16"/><rect class="node" x="36" y="728" width="552" height="180" rx="14"/><rect class="ns2" x="612" y="284" width="552" height="304" rx="16"/><rect class="node" x="612" y="728" width="552" height="180" rx="14"/><rect class="host" x="12" y="966" width="1176" height="72" rx="14"/><rect class="legend" x="12" y="1054" width="1176" height="44" rx="12"/><rect class="term" x="181" y="14" width="290" height="70" rx="10"/><circle class="dot0" cx="200" cy="30" r="4.5"/><circle class="dot1" cx="215" cy="30" r="4.5"/><circle class="dot2" cx="230" cy="30" r="4.5"/><circle class="bulb" cx="670" cy="46" r="13"/><rect class="bulb-base" x="663" y="61" width="14" height="7" rx="2"/><use href="#f1-hep" class="hep-k8s" x="36" y="124" width="30" height="30"/><text x="51" y="142.6" class="hep-t" text-anchor="middle">k8s</text><rect class="comp" x="246" y="180" width="160" height="72" rx="10"/><rect class="comp" x="794" y="180" width="150" height="72" rx="10"/><rect class="comp" x="968" y="180" width="180" height="72" rx="10"/><rect class="comp hl" x="450" y="180" width="320" height="72" rx="10"/><rect class="pill-warn" x="541" y="228" width="138" height="18" rx="9"/><rect class="res r-sc" x="675" y="624" width="180" height="76" rx="10"/><text x="687" y="643" class="k">STORAGECLASS</text><text x="687" y="665" class="n">standard</text><text x="687" y="685" class="dm">rancher.io/local-path</text><use href="#f1-hep" class="hep-ns1" x="56" y="298" width="30" height="30"/><text x="71" y="316.6" class="hep-t" text-anchor="middle">ns</text><rect class="res r-deploy" x="56" y="366" width="120" height="76" rx="10"/><text x="68" y="385" class="k">DEPLOYMENT</text><text x="68" y="407" class="n">postgres</text><text x="68" y="427" class="d">replicas: 1</text><rect class="res r-rs" x="216" y="366" width="130" height="76" rx="10"/><text x="228" y="385" class="k">REPLICASET</text><text x="228" y="407" class="n sm">postgres-7d9f…</text><text x="228" y="427" class="d">Pod 1개 유지</text><rect class="res r-pod" x="386" y="366" width="182" height="76" rx="10"/><text x="398" y="385" class="k">POD</text><text x="398" y="407" class="n sm">postgres-7d9f…-xk2</text><text x="398" y="427" class="d">실행 위치: Node 1</text><rect class="res r-pvc" x="386" y="494" width="182" height="76" rx="10"/><text x="398" y="513" class="k">PERSISTENTVOLUMECLAIM</text><text x="398" y="535" class="n">postgres-pvc</text><text x="398" y="555" class="d">1Gi · ReadWriteOnce</text><rect class="res r-pv" x="386" y="624" width="182" height="76" rx="10"/><text x="398" y="643" class="k">PERSISTENTVOLUME</text><text x="398" y="665" class="n">pvc-3f9a…</text><text x="398" y="685" class="d">1Gi · Bound</text><rect class="node-ic" x="52" y="741" width="26" height="10" rx="2"/><rect class="node-ic" x="52" y="754" width="26" height="10" rx="2"/><rect class="pill-node" x="236" y="742" width="192" height="22" rx="11"/><rect class="podrun" x="56" y="778" width="250" height="108" rx="12"/><rect class="chip1" x="206" y="783" width="92" height="20" rx="10"/><rect class="mount" x="66" y="810" width="230" height="26" rx="6"/><rect class="ephem" x="66" y="844" width="230" height="26" rx="6"/><path class="cyl" d="M417,792 A60,10 0 0 1 537,792 V852 A60,10 0 0 1 417,852 Z"/><ellipse class="cyl-lid" cx="477" cy="792" rx="60" ry="10"/><use href="#f1-hep" class="hep-ns2" x="632" y="298" width="30" height="30"/><text x="647" y="316.6" class="hep-t" text-anchor="middle">ns</text><rect class="res r-deploy" x="632" y="366" width="120" height="76" rx="10"/><text x="644" y="385" class="k">DEPLOYMENT</text><text x="644" y="407" class="n">rustfs</text><text x="644" y="427" class="d">replicas: 1</text><rect class="res r-rs" x="792" y="366" width="130" height="76" rx="10"/><text x="804" y="385" class="k">REPLICASET</text><text x="804" y="407" class="n sm">rustfs-5c8b…</text><text x="804" y="427" class="d">Pod 1개 유지</text><rect class="res r-pod" x="962" y="366" width="182" height="76" rx="10"/><text x="974" y="385" class="k">POD</text><text x="974" y="407" class="n sm">rustfs-5c8b…-q7z</text><text x="974" y="427" class="d">실행 위치: Node 2</text><rect class="res r-pvc" x="962" y="494" width="182" height="76" rx="10"/><text x="974" y="513" class="k">PERSISTENTVOLUMECLAIM</text><text x="974" y="535" class="n">rustfs-pvc</text><text x="974" y="555" class="d">1Gi · ReadWriteOnce</text><rect class="res r-pv" x="962" y="624" width="182" height="76" rx="10"/><text x="974" y="643" class="k">PERSISTENTVOLUME</text><text x="974" y="665" class="n">pvc-8c21…</text><text x="974" y="685" class="d">1Gi · Bound</text><rect class="node-ic" x="628" y="741" width="26" height="10" rx="2"/><rect class="node-ic" x="628" y="754" width="26" height="10" rx="2"/><rect class="pill-node" x="812" y="742" width="192" height="22" rx="11"/><rect class="podrun" x="632" y="778" width="250" height="108" rx="12"/><rect class="chip2" x="782" y="783" width="92" height="20" rx="10"/><rect class="mount" x="642" y="810" width="230" height="26" rx="6"/><rect class="ephem" x="642" y="844" width="230" height="26" rx="6"/><path class="cyl" d="M993,792 A60,10 0 0 1 1113,792 V852 A60,10 0 0 1 993,852 Z"/><ellipse class="cyl-lid" cx="1053" cy="792" rx="60" ry="10"/><path class="cyl-gray" d="M38,985 A20,7 0 0 1 78,985 V1019 A20,7 0 0 1 38,1019 Z"/><ellipse class="cyl-gray-lid" cx="58" cy="985" rx="20" ry="7"/><line class="ln ln-flow" x1="326" y1="84" x2="326" y2="177" marker-end="url(#f1-flow)"/><line class="ln ln-flow" x1="406" y1="216" x2="447" y2="216" marker-end="url(#f1-flow)"/><line class="ln ln-prov" x1="675" y1="662" x2="571" y2="662" marker-end="url(#f1-prov)"/><line class="ln ln-prov" x1="855" y1="662" x2="959" y2="662" marker-end="url(#f1-prov)"/><line class="ln ln-flow" x1="176" y1="404" x2="213" y2="404" marker-end="url(#f1-flow)"/><line class="ln ln-flow" x1="346" y1="404" x2="383" y2="404" marker-end="url(#f1-flow)"/><line class="ln ln-claim" x1="477" y1="442" x2="477" y2="491" marker-end="url(#f1-claim)"/><line class="ln ln-claim" x1="477" y1="570" x2="477" y2="621" marker-end="url(#f1-claim)"/><line class="ln ln-claim" x1="477" y1="700" x2="477" y2="779" marker-end="url(#f1-claim)"/><line class="ln ln-data" x1="310" y1="823" x2="413" y2="823" marker-end="url(#f1-data)" marker-start="url(#f1-data)"/><line class="ln ln-dash" x1="477" y1="908" x2="477" y2="963" marker-end="url(#f1-dash)"/><line class="ln ln-flow" x1="752" y1="404" x2="789" y2="404" marker-end="url(#f1-flow)"/><line class="ln ln-flow" x1="922" y1="404" x2="959" y2="404" marker-end="url(#f1-flow)"/><line class="ln ln-claim" x1="1053" y1="442" x2="1053" y2="491" marker-end="url(#f1-claim)"/><line class="ln ln-claim" x1="1053" y1="570" x2="1053" y2="621" marker-end="url(#f1-claim)"/><line class="ln ln-claim" x1="1053" y1="700" x2="1053" y2="779" marker-end="url(#f1-claim)"/><line class="ln ln-data" x1="886" y1="823" x2="989" y2="823" marker-end="url(#f1-data)" marker-start="url(#f1-data)"/><line class="ln ln-dash" x1="1053" y1="908" x2="1053" y2="963" marker-end="url(#f1-dash)"/><line class="ln ln-flow" x1="32" y1="1076" x2="73" y2="1076" marker-end="url(#f1-flow)"/><line class="ln ln-claim" x1="248" y1="1076" x2="289" y2="1076" marker-end="url(#f1-claim)"/><line class="ln ln-prov" x1="620" y1="1076" x2="661" y2="1076" marker-end="url(#f1-prov)"/><line class="ln ln-data" x1="904" y1="1076" x2="940" y2="1076" marker-end="url(#f1-data)" marker-start="url(#f1-data)"/><text x="165" y="54" class="t-sub" text-anchor="end">개발자</text><text x="198" y="66" class="term-t">$ kubectl apply -f postgres.yaml</text><circle class="num-c" cx="326" cy="98" r="11"/><text x="326" y="102.2" class="num-t" text-anchor="middle">1</text><text x="344" y="102" class="lbl">YAML 제출 (kubectl → API Server)</text><text x="700" y="38" class="tip-t1">PVC는 저장소를 요청하는 '신청서'입니다.</text><text x="700" y="60" class="tip-t">실제 데이터는 파드가 뜬 노드의 디스크 폴더에 있습니다.</text><text x="700" y="80" class="tip-t">control-plane(etcd)에는 PVC·PV 정보만 저장됩니다.</text><text x="78" y="148" class="t-cluster">Kubernetes Cluster</text><text x="1164" y="148" class="t-sub" text-anchor="end">Kind 클러스터 · sns-cluster</text><text x="54" y="212" class="t-h">Control Plane</text><text x="54" y="232" class="d">클러스터의 두뇌</text><text x="326" y="210" class="comp-n" text-anchor="middle">kube-apiserver</text><text x="326" y="231" class="d" text-anchor="middle">모든 요청의 입구</text><text x="869" y="210" class="comp-n" text-anchor="middle">kube-scheduler</text><text x="869" y="231" class="d" text-anchor="middle">파드를 둘 노드 선택</text><text x="1058" y="210" class="comp-n" text-anchor="middle">controller-manager</text><text x="1058" y="231" class="d" text-anchor="middle">원하는 상태로 맞춤</text><text x="610" y="201" class="comp-n" text-anchor="middle">etcd</text><text x="610" y="220" class="d" text-anchor="middle">PVC·PV 같은 오브젝트 정보만 저장</text><text x="610" y="240.5" class="pill-t" text-anchor="middle">DB 파일은 여기에 없음</text><text x="428" y="207" class="lbl" text-anchor="middle">저장</text><text x="56" y="640" class="t-h">클러스터 공용 영역</text><text x="56" y="662" class="d">StorageClass · PV는</text><text x="56" y="680" class="d">Namespace에 속하지 않습니다</text><text x="621.5" y="646" class="lbl" text-anchor="middle">폴더 + PV 생성</text><text x="908.5" y="646" class="lbl" text-anchor="middle">폴더 + PV 생성</text><circle class="num-c" cx="621.5" cy="662" r="11"/><text x="621.5" y="666.2" class="num-t" text-anchor="middle">3</text><text x="94" y="318" class="t-ns">Namespace: postgres</text><text x="94" y="338" class="d">데이터베이스 영역</text><text x="196" y="396" class="lbl" text-anchor="middle">관리</text><text x="366" y="396" class="lbl" text-anchor="middle">생성</text><text x="467" y="472" class="lbl" text-anchor="end">claimName으로 참조</text><text x="56" y="512" class="note">PVC는 이 Namespace 안에서만 보이는</text><text x="56" y="530" class="note">'신청서'입니다. 받아 줄 PV는 아래</text><text x="56" y="548" class="note">클러스터 공용 영역에 만들어집니다.</text><text x="487" y="603" class="lbl">바인딩 1:1</text><text x="487" y="722" class="lbl">path로 지정</text><text x="90" y="758" class="t-h">Node 1 (worker)</text><text x="332" y="757" class="pill-node-t" text-anchor="middle">Kind 노드 = Docker 컨테이너</text><text x="68" y="797" class="n sm">postgres-7d9f…-xk2</text><text x="252" y="797" class="chip-t" text-anchor="middle">ns: postgres</text><text x="76" y="827" class="m1"><tspan class="b">마운트</tspan><tspan class="mono" dx="6">/var/lib/postgresql/data</tspan></text><text x="76" y="861" class="m1 bad2">컨테이너 안 파일 · 파드와 함께 삭제</text><text x="477" y="819" class="cyl-t" text-anchor="middle">DB 파일</text><text x="477" y="837" class="cyl-t2" text-anchor="middle">실제 저장 위치</text><text x="477" y="880" class="pathl" text-anchor="middle">/var/local-path-provisioner/</text><text x="477" y="896" class="pathl" text-anchor="middle">pvc-…_postgres_postgres-pvc</text><text x="378" y="813" class="lbl b" text-anchor="middle">마운트</text><text x="467" y="954" class="lbl" text-anchor="end">폴더 = Mac 디스크 위의 파일</text><text x="670" y="318" class="t-ns">Namespace: rustfs</text><text x="670" y="338" class="d">파일 저장소(오브젝트 스토리지) 영역</text><text x="772" y="396" class="lbl" text-anchor="middle">관리</text><text x="942" y="396" class="lbl" text-anchor="middle">생성</text><text x="1043" y="472" class="lbl" text-anchor="end">claimName으로 참조</text><text x="632" y="512" class="note">rustfs도 같은 구조입니다.</text><text x="632" y="530" class="note">PVC마다 노드에 따로 폴더가 생겨서</text><text x="632" y="548" class="note">서로의 데이터가 섞이지 않습니다.</text><text x="1063" y="603" class="lbl">바인딩 1:1</text><text x="1063" y="722" class="lbl">path로 지정</text><text x="666" y="758" class="t-h">Node 2 (worker)</text><text x="908" y="757" class="pill-node-t" text-anchor="middle">Kind 노드 = Docker 컨테이너</text><text x="644" y="797" class="n sm">rustfs-5c8b…-q7z</text><text x="828" y="797" class="chip-t" text-anchor="middle">ns: rustfs</text><text x="652" y="827" class="m1"><tspan class="b">마운트</tspan><tspan class="mono" dx="6">/data</tspan></text><text x="652" y="861" class="m1 bad2">컨테이너 안 파일 · 파드와 함께 삭제</text><text x="1053" y="819" class="cyl-t" text-anchor="middle">오브젝트 데이터</text><text x="1053" y="837" class="cyl-t2" text-anchor="middle">실제 저장 위치</text><text x="1053" y="880" class="pathl" text-anchor="middle">/var/local-path-provisioner/</text><text x="1053" y="896" class="pathl" text-anchor="middle">pvc-…_rustfs_rustfs-pvc</text><text x="954" y="813" class="lbl b" text-anchor="middle">마운트</text><text x="1043" y="954" class="lbl" text-anchor="end">폴더 = Mac 디스크 위의 파일</text><circle class="num-c" cx="386" cy="494" r="11"/><text x="386" y="498.2" class="num-t" text-anchor="middle">2</text><circle class="num-c" cx="345" cy="823" r="11"/><text x="345" y="827.2" class="num-t" text-anchor="middle">4</text><text x="96" y="996" class=""><tspan class="t-h">내 Mac</tspan><tspan class="d" dx="10">Docker Desktop</tspan></text><text x="96" y="1018" class="d">Kind 노드는 Docker 컨테이너입니다. 위 폴더는 Docker Desktop 가상 디스크 파일 안에 있고, 그 파일은 Mac의 SSD에 저장됩니다.</text><text x="88" y="1080.5" class="lbl">요청·생성 흐름</text><text x="304" y="1080.5" class="lbl">참조·연결 (Pod → PVC → PV → 폴더)</text><text x="676" y="1080.5" class="lbl">StorageClass의 자동 생성</text><text x="956" y="1080.5" class="lbl">실제 데이터가 오가는 길</text></svg>
+    </div>
+    <figcaption>PVC는 control-plane의 etcd에 정보만 남기고, 실제 DB 파일은 파드가 뜬 노드 디스크의 폴더에 저장됩니다. 파란 굵은 화살표가 데이터가 오가는 길이고, 번호는 만들어지는 순서입니다.</figcaption>
+  </figure>
+
+  <section>
+    <h2>만들어지는 순서</h2>
+    <ol class="steps">
+      <li><b>YAML 제출</b><code>kubectl apply</code>로 보낸 YAML을 API Server가 받아 etcd에 저장합니다. 여기에 남는 것은 PVC 같은 오브젝트 정보뿐입니다.</li>
+      <li><b>PVC 생성</b><code>postgres-pvc</code>(1Gi, ReadWriteOnce)가 만들어집니다. Kind의 기본 StorageClass는 파드가 노드에 배치될 때까지 PVC를 Pending으로 둡니다.</li>
+      <li><b>폴더와 PV 생성</b>스케줄러가 파드를 노드에 배치하면, StorageClass(<code>rancher.io/local-path</code>)가 그 노드에 폴더를 만들고 PV를 생성해 PVC와 묶습니다.</li>
+      <li><b>마운트</b>kubelet이 그 폴더를 컨테이너의 <code>/var/lib/postgresql/data</code>에 연결합니다. Postgres가 쓰는 파일은 이 폴더에 쌓입니다.</li>
+    </ol>
+  </section>
+
+  <section id="fig-restart">
+    <h2>파드가 죽으면</h2>
+    <figure>
+      <div class="scroll" tabindex="0" role="group" aria-label="비교도. 가로로 스크롤할 수 있습니다.">
+<svg viewBox="0 0 1200 452" role="img" aria-label="파드가 삭제됐을 때의 비교. PVC 없이 쓰면 컨테이너 안의 데이터가 파드와 함께 사라지고, PVC를 쓰면 노드 폴더의 데이터가 남아 새 파드가 같은 폴더를 다시 마운트한다."><defs><marker id="f2-flow" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-flow" d="M0,0 L12,6 L0,12 Z"/></marker><marker id="f2-claim" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-claim" d="M0,0 L12,6 L0,12 Z"/></marker><marker id="f2-prov" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-prov" d="M0,0 L12,6 L0,12 Z"/></marker><marker id="f2-data" viewBox="0 0 16 16" markerWidth="16" markerHeight="16" refX="12" refY="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-data" d="M0,0 L16,8 L0,16 Z"/></marker><marker id="f2-dash" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path class="mk-dash" d="M0,0 L12,6 L0,12 Z"/></marker></defs><rect class="row" x="12" y="48" width="1176" height="176" rx="14"/><rect class="row" x="12" y="236" width="1176" height="204" rx="14"/><rect class="disk" x="232" y="352" width="956" height="76" rx="12"/><rect class="pod" x="274" y="62" width="232" height="148" rx="12"/><path class="cyl" d="M344,113 A46,11 0 0 1 436,113 V157 A46,11 0 0 1 344,157 Z"/><ellipse class="cyl-lid" cx="390" cy="113" rx="46" ry="11"/><rect class="pod dead" x="598" y="62" width="232" height="148" rx="12"/><path class="cyl ghost" d="M668,113 A46,11 0 0 1 760,113 V157 A46,11 0 0 1 668,157 Z"/><ellipse class="cyl-lid ghost" cx="714" cy="113" rx="46" ry="11"/><rect class="pod" x="922" y="62" width="232" height="148" rx="12"/><path class="cyl-empty" d="M992,113 A46,11 0 0 1 1084,113 V157 A46,11 0 0 1 992,157 Z"/><ellipse class="cyl-empty-lid" cx="1038" cy="113" rx="46" ry="11"/><rect class="pod" x="274" y="250" width="232" height="76" rx="12"/><rect class="mount" x="288" y="284" width="204" height="28" rx="6"/><path class="cyl" d="M348,370 A42,10 0 0 1 432,370 V410 A42,10 0 0 1 348,410 Z"/><ellipse class="cyl-lid" cx="390" cy="370" rx="42" ry="10"/><rect class="pod dead" x="598" y="250" width="232" height="76" rx="12"/><path class="cyl" d="M672,370 A42,10 0 0 1 756,370 V410 A42,10 0 0 1 672,410 Z"/><ellipse class="cyl-lid" cx="714" cy="370" rx="42" ry="10"/><rect class="pod" x="922" y="250" width="232" height="76" rx="12"/><rect class="mount" x="936" y="284" width="204" height="28" rx="6"/><path class="cyl" d="M996,370 A42,10 0 0 1 1080,370 V410 A42,10 0 0 1 996,410 Z"/><ellipse class="cyl-lid" cx="1038" cy="370" rx="42" ry="10"/><g transform="translate(772 390)"><circle class="ck" r="10"/><path class="ck-x" d="M-4.5,0.5 L-1.5,3.8 L4.5,-3.8"/></g><g transform="translate(1096 390)"><circle class="ck" r="10"/><path class="ck-x" d="M-4.5,0.5 L-1.5,3.8 L4.5,-3.8"/></g><line class="ln ln-data" x1="390" y1="326" x2="390" y2="356" marker-end="url(#f2-data)"/><line class="ln ln-data" x1="1038" y1="326" x2="1038" y2="356" marker-end="url(#f2-data)"/><text x="390" y="32" class="colh" text-anchor="middle">평소</text><text x="714" y="32" class="colh" text-anchor="middle">파드가 죽음 (장애·재배포)</text><text x="1038" y="32" class="colh" text-anchor="middle">새 파드가 뜸 (Deployment가 자동 생성)</text><path class="chev" d="M548,21 L556,27 L548,33"/><path class="chev" d="M872,21 L880,27 L872,33"/><text x="28" y="96" class="t-row">PVC 없이</text><text x="28" y="120" class="d">데이터를 컨테이너 안에</text><text x="28" y="138" class="d">저장하는 경우</text><text x="288" y="84" class="n sm">postgres-7d9f…-xk2</text><text x="390" y="139" class="cyl-t" text-anchor="middle">DB 데이터</text><text x="390" y="196" class="d" text-anchor="middle">컨테이너 안에 저장</text><text x="612" y="84" class="n sm dim">postgres-7d9f…-xk2</text><text x="714" y="139" class="cyl-t ghost" text-anchor="middle">DB 데이터</text><text x="714" y="196" class="bad" text-anchor="middle">데이터도 함께 삭제됨</text><g transform="translate(806 76)"><circle class="xb" r="12"/><path class="xb-x" d="M-4.5,-4.5 L4.5,4.5 M4.5,-4.5 L-4.5,4.5"/></g><text x="936" y="84" class="n sm">postgres-7d9f…-p3q</text><text x="1038" y="139" class="d" text-anchor="middle">비어 있음</text><text x="1038" y="196" class="bad" text-anchor="middle">새 DB로 시작 (데이터 없음)</text><text x="28" y="284" class="t-row">PVC 사용</text><text x="28" y="308" class="d">데이터를 노드 디스크의</text><text x="28" y="326" class="d">폴더에 저장하는 경우</text><text x="246" y="394" class="lbl">노드 디스크</text><text x="288" y="272" class="n sm">postgres-7d9f…-xk2</text><text x="298" y="302.5" class="mono-s">/var/lib/postgresql/data</text><text x="390" y="394" class="cyl-t" text-anchor="middle">DB 데이터</text><text x="612" y="272" class="n sm dim">postgres-7d9f…-xk2</text><text x="714" y="306" class="bad" text-anchor="middle">삭제됨</text><g transform="translate(806 264)"><circle class="xb" r="12"/><path class="xb-x" d="M-4.5,-4.5 L4.5,4.5 M4.5,-4.5 L-4.5,4.5"/></g><text x="714" y="394" class="cyl-t" text-anchor="middle">DB 데이터</text><text x="936" y="272" class="n sm">postgres-7d9f…-p3q</text><text x="946" y="302.5" class="mono-s">/var/lib/postgresql/data</text><text x="1038" y="394" class="cyl-t" text-anchor="middle">DB 데이터</text><text x="444" y="394" class="lbl">DB가 여기에 기록</text><text x="788" y="394" class="ok">그대로 남음</text><text x="1112" y="394" class="ok">이어서 사용</text><text x="402" y="344" class="lbl b">마운트</text><text x="1026" y="344" class="lbl b" text-anchor="end">같은 PVC를 다시 마운트</text></svg>
+      </div>
+      <figcaption>파드를 지워도 PVC가 가리키는 노드 폴더는 남고, 새 파드가 같은 PVC를 다시 마운트해 데이터를 이어서 씁니다. PVC가 없으면 컨테이너 안의 데이터가 파드와 함께 사라집니다.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>알아둘 점</h2>
+    <ul class="notes">
+      <li>폴더 위치는 노드 구성에 따라 달라집니다. lite 프로필(노드 1개)은 control-plane 노드 안에, full 프로필(워커 2개)은 파드가 배치된 워커 안에 만들어집니다.</li>
+      <li>local-path로 만든 PV는 특정 노드에 고정됩니다. 파드는 그 노드에만 다시 배치되고, Kind 클러스터를 삭제하면 노드와 함께 데이터도 사라집니다.</li>
+      <li>PVC를 삭제하면 PV와 노드 폴더도 함께 지워집니다(기본 StorageClass의 reclaimPolicy가 Delete). 파드만 삭제하면 데이터는 남습니다.</li>
+    </ul>
+  </section>
+</div>
+
+</html>
